@@ -3877,13 +3877,13 @@ Generated on: ${new Date().toLocaleString()}`;
             
             {/* ZHI Model Guide */}
             <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
-              <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">Model Guide</h4>
+              <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">Model Guide (cost per token)</h4>
               <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-                <div className="flex justify-between"><span><b>ZHI 1</b> — General purpose, follows instructions best</span><span className="text-amber-600">$$$</span></div>
-                <div className="flex justify-between"><span><b>ZHI 2</b> — Complex writing, long documents</span><span className="text-red-500">$$$$</span></div>
-                <div className="flex justify-between"><span><b>ZHI 3</b> — Math & logic</span><span className="text-green-600">$</span></div>
-                <div className="flex justify-between"><span><b>ZHI 4</b> — Factual lookup with sources</span><span className="text-red-500">$$$$</span></div>
-                <div className="flex justify-between"><span><b>ZHI 5</b> — Casual, current events</span><span className="text-yellow-600">$$</span></div>
+                <div className="flex justify-between"><span><b>ZHI 1</b> — General purpose, follows instructions best</span><span className="text-amber-600 font-medium">5x</span></div>
+                <div className="flex justify-between"><span><b>ZHI 2</b> — Complex writing, long documents</span><span className="text-red-500 font-medium">7x</span></div>
+                <div className="flex justify-between"><span><b>ZHI 3</b> — Math & logic</span><span className="text-green-600 font-medium">1x</span></div>
+                <div className="flex justify-between"><span><b>ZHI 4</b> — Factual lookup with sources</span><span className="text-red-500 font-medium">7x</span></div>
+                <div className="flex justify-between"><span><b>ZHI 5</b> — Casual, current events</span><span className="text-yellow-600 font-medium">3x</span></div>
               </div>
             </div>
           </div>
@@ -5112,9 +5112,18 @@ Generated on: ${new Date().toLocaleString()}`;
                 <SelectItem value="zhi4">ZHI 4</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              Choose which ZHI model powers the validation. ZHI 5 is recommended for most tasks.
-            </p>
+            
+            {/* Model Guide with Cost Multipliers */}
+            <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-600 text-xs">
+              <div className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Model Guide (cost per token)</div>
+              <div className="space-y-1 text-gray-600 dark:text-gray-400">
+                <div className="flex justify-between"><span><b>ZHI 1</b> — General purpose, follows instructions best</span><span className="text-amber-600 font-medium">5x</span></div>
+                <div className="flex justify-between"><span><b>ZHI 2</b> — Complex writing, long documents</span><span className="text-red-500 font-medium">7x</span></div>
+                <div className="flex justify-between"><span><b>ZHI 3</b> — Math & logic</span><span className="text-green-600 font-medium">1x</span></div>
+                <div className="flex justify-between"><span><b>ZHI 4</b> — Factual lookup with sources</span><span className="text-red-500 font-medium">7x</span></div>
+                <div className="flex justify-between"><span><b>ZHI 5</b> — Casual, current events</span><span className="text-yellow-600 font-medium">3x</span></div>
+              </div>
+            </div>
           </div>
 
 

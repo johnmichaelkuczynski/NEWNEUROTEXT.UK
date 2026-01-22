@@ -36,27 +36,27 @@ const ProviderSelector: React.FC<ProviderSelectorProps> = ({
                 <Info className="h-4 w-4 text-gray-400 cursor-help" />
               </TooltipTrigger>
               <TooltipContent className="max-w-xs p-3">
-                <p className="font-medium mb-2">ZHI Model Guide</p>
+                <p className="font-medium mb-2">ZHI Model Guide (cost per token)</p>
                 <div className="space-y-1.5 text-xs">
                   <div className="flex justify-between gap-3">
                     <span><span className="font-semibold">ZHI 1</span> — General purpose, follows instructions best</span>
-                    <span className="text-amber-500 flex-shrink-0">$$$</span>
+                    <span className="text-amber-500 font-medium flex-shrink-0">5x</span>
                   </div>
                   <div className="flex justify-between gap-3">
                     <span><span className="font-semibold">ZHI 2</span> — Complex writing, long documents</span>
-                    <span className="text-amber-500 flex-shrink-0">$$$$</span>
+                    <span className="text-red-500 font-medium flex-shrink-0">7x</span>
                   </div>
                   <div className="flex justify-between gap-3">
                     <span><span className="font-semibold">ZHI 3</span> — Math & logic</span>
-                    <span className="text-green-500 flex-shrink-0">$</span>
+                    <span className="text-green-500 font-medium flex-shrink-0">1x</span>
                   </div>
                   <div className="flex justify-between gap-3">
                     <span><span className="font-semibold">ZHI 4</span> — Factual lookup with sources</span>
-                    <span className="text-amber-500 flex-shrink-0">$$$$</span>
+                    <span className="text-red-500 font-medium flex-shrink-0">7x</span>
                   </div>
                   <div className="flex justify-between gap-3">
                     <span><span className="font-semibold">ZHI 5</span> — Casual, current events</span>
-                    <span className="text-yellow-500 flex-shrink-0">$$</span>
+                    <span className="text-yellow-500 font-medium flex-shrink-0">3x</span>
                   </div>
                 </div>
               </TooltipContent>
