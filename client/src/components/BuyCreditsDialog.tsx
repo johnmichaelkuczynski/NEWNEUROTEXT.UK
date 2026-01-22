@@ -5,10 +5,6 @@ import { Loader2, Sparkles } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { loadStripe } from "@stripe/stripe-js";
-
-const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
 
 interface BuyCreditsDialogProps {
   open: boolean;
@@ -24,9 +20,8 @@ export function BuyCreditsDialog({ open, onOpenChange }: BuyCreditsDialogProps) 
       return await response.json();
     },
     onSuccess: async (data) => {
-      const stripe = await stripePromise;
-      if (!stripe) {
-        toast({ title: "Error", description: "Stripe failed to load", variant: "destructive" });
+      if (!data.url) {
+        toast({ title: "Error", description: data.message || "Failed to create checkout session", variant: "destructive" });
         return;
       }
       
@@ -37,7 +32,7 @@ export function BuyCreditsDialog({ open, onOpenChange }: BuyCreditsDialogProps) 
         credits: 1000,
       }));
       
-      // Redirect to Stripe Checkout
+      // Redirect directly to Stripe Checkout URL
       window.location.href = data.url;
     },
     onError: (error: any) => {
