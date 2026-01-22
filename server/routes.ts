@@ -572,7 +572,7 @@ export async function registerRoutes(app: Express): Promise<Express> {
   registerPaymentRoutes(app);
   
   // Simple Stripe webhook for payment link purchases
-  // This uses the direct payment link: https://buy.stripe.com/cNibJ33W8ddG2Laa1sdZ600
+  // Note: Uses STRIPE_PRICE_ID_100 environment variable for checkout
   app.post("/webhook/stripe", async (req: Request, res: Response) => {
     const { stripe } = await import('./lib/stripe-config');
     
@@ -977,7 +977,7 @@ export async function registerRoutes(app: Express): Promise<Express> {
           return res.status(402).json({
             error: true,
             message: creditResult.error,
-            formattedReport: `**Insufficient Credits**\n\n${creditResult.error}\n\n[Buy more credits](https://buy.stripe.com/cNibJ33W8ddG2Laa1sdZ600)`,
+            formattedReport: `**Insufficient Credits**\n\n${creditResult.error}\n\nPlease purchase more credits using the Buy Credits button in the header.`,
             provider: provider
           });
         }

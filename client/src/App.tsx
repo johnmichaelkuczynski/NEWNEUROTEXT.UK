@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreditBalance } from "@/components/CreditBalance";
+import { BuyCreditsDialog } from "@/components/BuyCreditsDialog";
 import neurotextLogo from "@assets/generated_images/robot_thinker_pose_with_book.png";
 
 // Reset Context
@@ -190,6 +191,7 @@ function Navigation() {
   const { user, logoutMutation } = useAuth();
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [buyCreditsDialogOpen, setBuyCreditsDialogOpen] = useState(false);
   const { activeJob, openViewer } = useActiveJob();
 
   return (
@@ -264,16 +266,14 @@ function Navigation() {
                   <div className="bg-primary-foreground/20 px-2 py-1 rounded">
                     <CreditBalance />
                   </div>
-                  <a 
-                    href="https://buy.stripe.com/cNibJ33W8ddG2Laa1sdZ600"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Button
+                    onClick={() => setBuyCreditsDialogOpen(true)}
                     className="inline-flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md text-sm font-medium"
                     data-testid="button-buy-credits"
                   >
                     <CreditCard className="h-4 w-4" />
                     Buy Credits
-                  </a>
+                  </Button>
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -319,6 +319,7 @@ function Navigation() {
       
       <LoginDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen} />
       <ResetConfirmDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen} />
+      <BuyCreditsDialog open={buyCreditsDialogOpen} onOpenChange={setBuyCreditsDialogOpen} />
     </nav>
   );
 }
