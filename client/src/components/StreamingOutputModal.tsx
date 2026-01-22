@@ -4,6 +4,9 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Copy, Download, X, Loader2, CheckCircle2, GripHorizontal, Minimize2, Maximize2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCredits } from "@/hooks/use-credits";
+import { getFreemiumPreview } from "@/lib/freemiumPreview";
+import { PaywallOverlay } from "./PaywallOverlay";
 
 interface StreamChunk {
   type: 'section_complete' | 'progress' | 'outline' | 'complete';
@@ -44,6 +47,7 @@ export function StreamingOutputModal({ isOpen, onClose, onComplete, startNew = f
   const wordCountRef = useRef(0);
   const panelRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { hasCredits } = useCredits();
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (panelRef.current) {
@@ -339,7 +343,25 @@ export function StreamingOutputModal({ isOpen, onClose, onComplete, startNew = f
 
           <ScrollArea className="flex-1 p-4">
             <div ref={scrollRef} className="whitespace-pre-wrap font-mono text-sm">
-              {content || (
+              {content ? (
+                <>
+                  {(() => {
+                    const preview = getFreemiumPreview(content, hasCredits);
+                    return (
+                      <>
+                        {preview.visibleContent}
+                        {preview.isTruncated && isComplete && (
+                          <PaywallOverlay
+                            totalWords={preview.totalWords}
+                            visibleWords={preview.visibleWords}
+                            percentageShown={preview.percentageShown}
+                          />
+                        )}
+                      </>
+                    );
+                  })()}
+                </>
+              ) : (
                 <span className="text-muted-foreground italic">
                   Waiting for content... The document will appear here section by section as it is generated.
                 </span>

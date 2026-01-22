@@ -12,6 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useActiveJob } from '@/contexts/ActiveJobContext';
+import { useCredits } from '@/hooks/use-credits';
+import { getFreemiumPreview } from '@/lib/freemiumPreview';
+import { PaywallOverlay } from './PaywallOverlay';
 import {
   Copy,
   Download,
@@ -53,6 +56,7 @@ export function JobViewerModal() {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'combined' | 'chunks'>('combined');
   const { toast } = useToast();
+  const { hasCredits } = useCredits();
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -266,7 +270,21 @@ export function JobViewerModal() {
               <TabsContent value="combined" className="flex-1 overflow-hidden mt-4">
                 <ScrollArea className="h-[50vh] border rounded-md p-4 bg-muted/20">
                   {combinedText ? (
-                    <pre className="whitespace-pre-wrap text-sm font-mono">{combinedText}</pre>
+                    (() => {
+                      const preview = getFreemiumPreview(combinedText, hasCredits);
+                      return (
+                        <div>
+                          <pre className="whitespace-pre-wrap text-sm font-mono">{preview.visibleContent}</pre>
+                          {preview.isTruncated && (
+                            <PaywallOverlay
+                              totalWords={preview.totalWords}
+                              visibleWords={preview.visibleWords}
+                              percentageShown={preview.percentageShown}
+                            />
+                          )}
+                        </div>
+                      );
+                    })()
                   ) : (
                     <p className="text-muted-foreground text-center py-8">
                       {isProcessing ? 'Waiting for chunks to complete...' : 'No output generated yet'}
@@ -301,7 +319,21 @@ export function JobViewerModal() {
                               </Button>
                             </div>
                           </div>
-                          <pre className="whitespace-pre-wrap text-sm font-mono">{chunk.chunkText}</pre>
+                          {(() => {
+                            const chunkPreview = getFreemiumPreview(chunk.chunkText || '', hasCredits);
+                            return (
+                              <div>
+                                <pre className="whitespace-pre-wrap text-sm font-mono">{chunkPreview.visibleContent}</pre>
+                                {chunkPreview.isTruncated && (
+                                  <PaywallOverlay
+                                    totalWords={chunkPreview.totalWords}
+                                    visibleWords={chunkPreview.visibleWords}
+                                    percentageShown={chunkPreview.percentageShown}
+                                  />
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       ))}
                     </div>

@@ -330,6 +330,34 @@ function Router({ resetKey }: { resetKey: number }) {
   const { toast } = useToast();
   const { user } = useAuth();
 
+  // Handle redirect to Stripe checkout after login
+  useEffect(() => {
+    if (user) {
+      const redirectAction = sessionStorage.getItem('redirectAfterLogin');
+      if (redirectAction === 'stripe-checkout') {
+        sessionStorage.removeItem('redirectAfterLogin');
+        // Redirect to Stripe checkout
+        const initiateCheckout = async () => {
+          try {
+            const response = await apiRequest("POST", "/api/payments/create-checkout", {});
+            const data = await response.json();
+            if (data.url) {
+              window.location.href = data.url;
+            }
+          } catch (error) {
+            console.error("Failed to create checkout session:", error);
+            toast({
+              title: "Error",
+              description: "Failed to start checkout. Please try again.",
+              variant: "destructive",
+            });
+          }
+        };
+        initiateCheckout();
+      }
+    }
+  }, [user, toast]);
+
   // Handle return from Stripe checkout - verify payment and add credits
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

@@ -16,6 +16,7 @@ import { FictionComparisonModal } from "@/components/FictionComparisonModal";
 import { TextStats } from "@/components/TextStats";
 import { CCStreamingUI } from "@/components/CCStreamingUI";
 import { StreamingOutputModal } from "@/components/StreamingOutputModal";
+import { FreemiumContent } from "@/components/FreemiumContent";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -5239,9 +5240,7 @@ Generated on: ${new Date().toLocaleString()}`;
               </div>
               
               <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded border border-gray-200 dark:border-gray-700 max-h-[600px] overflow-y-auto">
-                <pre className="whitespace-pre-wrap font-mono text-sm text-gray-800 dark:text-gray-200">
-                  {validatorOutput}
-                </pre>
+                <FreemiumContent content={validatorOutput} />
               </div>
               
               {/* Refine Reconstruction Section */}
