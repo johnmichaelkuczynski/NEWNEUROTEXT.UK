@@ -44,7 +44,7 @@ export function PaywallOverlay({ totalWords, visibleWords, percentageShown }: Pa
   const handleBuyCredits = async () => {
     if (!user) {
       sessionStorage.setItem('redirectAfterLogin', 'stripe-checkout');
-      window.location.href = '/api/login';
+      window.location.href = '/auth/google';
       return;
     }
     
