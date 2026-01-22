@@ -1,5 +1,4 @@
-import { Button } from "@/components/ui/button";
-import { Lock, CreditCard } from "lucide-react";
+import { Lock } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 interface PaywallOverlayProps {
@@ -59,15 +58,24 @@ export function PaywallOverlay({ totalWords, visibleWords, percentageShown }: Pa
           <span className="font-medium">{hiddenWords.toLocaleString()} words</span> are hidden.
         </p>
         
-        <Button
+        <button
           onClick={handleBuyCredits}
-          size="lg"
-          className="!bg-[#2563eb] !text-white hover:!bg-[#1d4ed8] font-bold"
+          style={{
+            backgroundColor: '#dc2626',
+            color: 'white',
+            fontWeight: 'bold',
+            fontSize: '18px',
+            padding: '16px 32px',
+            borderRadius: '9999px',
+            border: 'none',
+            cursor: 'pointer',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}
           data-testid="button-buy-credits-paywall"
         >
-          <CreditCard className="w-5 h-5 mr-2" />
-          Buy Credits to See Full Content
-        </Button>
+          BUY CREDITS TO SEE FULL CONTENT
+        </button>
         
         <p className="text-xs text-gray-500 dark:text-gray-500 mt-3">
           $100 = 1,000 credits. Credits are used based on AI model selected.
