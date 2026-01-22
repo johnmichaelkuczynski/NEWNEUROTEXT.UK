@@ -3871,27 +3871,20 @@ Generated on: ${new Date().toLocaleString()}`;
               onProviderChange={setSelectedProvider}
               label="AI Provider"
               apiStatus={apiStatus}
+              showTooltips={false}
               className="mb-3"
             />
             
-            {/* API Status Indicators */}
-            <div className="mt-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Provider Status:</h4>
-              <div className="flex flex-wrap gap-2">
-                <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center ${apiStatus.openai ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                  <span className={`h-2 w-2 rounded-full mr-1.5 ${apiStatus.openai ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                  ZHI 1: {apiStatus.openai ? 'Active' : 'Inactive'}
-                </div>
-                <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center ${apiStatus.anthropic ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                  <span className={`h-2 w-2 rounded-full mr-1.5 ${apiStatus.anthropic ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                  ZHI 2: {apiStatus.anthropic ? 'Active' : 'Inactive'}
-                </div>
-                <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center ${apiStatus.perplexity ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                  <span className={`h-2 w-2 rounded-full mr-1.5 ${apiStatus.perplexity ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                  ZHI 3: {apiStatus.perplexity ? 'Active' : 'Inactive'}
-                </div>
+            {/* ZHI Model Guide */}
+            <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
+              <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">Model Guide</h4>
+              <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+                <div className="flex justify-between"><span><b>ZHI 1</b> — General purpose, follows instructions best</span><span className="text-amber-600">$$$</span></div>
+                <div className="flex justify-between"><span><b>ZHI 2</b> — Complex writing, long documents</span><span className="text-red-500">$$$$</span></div>
+                <div className="flex justify-between"><span><b>ZHI 3</b> — Math & logic</span><span className="text-green-600">$</span></div>
+                <div className="flex justify-between"><span><b>ZHI 4</b> — Factual lookup with sources</span><span className="text-red-500">$$$$</span></div>
+                <div className="flex justify-between"><span><b>ZHI 5</b> — Casual, current events</span><span className="text-yellow-600">$$</span></div>
               </div>
-              <p className="mt-2 text-xs text-gray-500">All API providers are active and ready to use. Each offers different analysis capabilities.</p>
             </div>
           </div>
         </div>
