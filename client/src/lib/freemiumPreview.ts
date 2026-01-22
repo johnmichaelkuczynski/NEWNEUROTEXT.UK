@@ -6,59 +6,43 @@ export interface FreemiumResult {
   percentageShown: number;
 }
 
+export const FREEMIUM_WORD_LIMIT = 500;
+
 export function getFreemiumPreview(content: string, hasCredits: boolean): FreemiumResult {
+  const words = content.split(/\s+/).filter(w => w.length > 0);
+  const totalWords = words.length;
+
+  // Users with credits see everything
   if (hasCredits) {
-    const words = content.split(/\s+/).filter(w => w.length > 0);
     return {
       visibleContent: content,
       isTruncated: false,
-      totalWords: words.length,
-      visibleWords: words.length,
+      totalWords,
+      visibleWords: totalWords,
       percentageShown: 100
     };
   }
 
-  const words = content.split(/\s+/).filter(w => w.length > 0);
-  const totalWords = words.length;
-  
-  let percentageToShow: number;
-  let maxWords: number | null = null;
-  
-  if (totalWords <= 500) {
-    percentageToShow = 100;
-  } else if (totalWords <= 1000) {
-    percentageToShow = 75;
-  } else if (totalWords <= 2000) {
-    percentageToShow = 60;
-  } else if (totalWords <= 5000) {
-    percentageToShow = 40;
-  } else if (totalWords <= 10000) {
-    percentageToShow = 25;
-  } else if (totalWords <= 20000) {
-    percentageToShow = 10;
-  } else {
-    percentageToShow = 0;
-    maxWords = 1000;
+  // Users without credits: show first 500 words only
+  if (totalWords <= FREEMIUM_WORD_LIMIT) {
+    return {
+      visibleContent: content,
+      isTruncated: false,
+      totalWords,
+      visibleWords: totalWords,
+      percentageShown: 100
+    };
   }
   
-  let wordsToShow: number;
-  if (maxWords !== null) {
-    wordsToShow = maxWords;
-  } else {
-    wordsToShow = Math.floor(totalWords * (percentageToShow / 100));
-  }
-  
-  const isTruncated = wordsToShow < totalWords;
-  const visibleWords = words.slice(0, wordsToShow);
+  const visibleWords = words.slice(0, FREEMIUM_WORD_LIMIT);
   const visibleContent = visibleWords.join(' ');
-  
-  const actualPercentage = totalWords > 0 ? Math.round((wordsToShow / totalWords) * 100) : 100;
+  const percentageShown = Math.round((FREEMIUM_WORD_LIMIT / totalWords) * 100);
   
   return {
-    visibleContent: isTruncated ? visibleContent + '...' : visibleContent,
-    isTruncated,
+    visibleContent: visibleContent + '...',
+    isTruncated: true,
     totalWords,
-    visibleWords: wordsToShow,
-    percentageShown: actualPercentage
+    visibleWords: FREEMIUM_WORD_LIMIT,
+    percentageShown
   };
 }

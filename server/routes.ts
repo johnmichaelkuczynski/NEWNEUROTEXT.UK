@@ -26,7 +26,7 @@ import {
   getPartialOutput,
   type ProcessingProgress 
 } from "./services/dbEnforcedReconstruction";
-import { checkAndDeductCredits, CREDIT_COSTS, checkUnlimited } from "./services/creditManager";
+import { checkAndDeductCredits, hasUnlimitedCredits, getUserWordLimit, FREEMIUM_WORD_LIMIT } from "./services/creditManager";
 
 
 // Configure multer for file uploads
@@ -2982,6 +2982,14 @@ Structural understanding is always understanding of relationships. Observational
         });
       }
       
+      // FREEMIUM CHECK: Enforce 500 word limit for users without credits
+      const user = req.user as any;
+      const { hasCredits, wordLimit } = await getUserWordLimit(user?.id, user?.username);
+      
+      if (!hasCredits) {
+        console.log(`[FREEMIUM] User has no credits - enforcing ${FREEMIUM_WORD_LIMIT} word limit`);
+      }
+      
       // Use effective text - if no text but has instructions, use instructions as text for processing
       const effectiveText = hasText ? text : customInstructions;
       
@@ -3050,7 +3058,8 @@ Structural understanding is always understanding of relationships. Observational
               text: effectiveText,
               customInstructions: effectiveInstructions,
               aggressiveness,
-              onChunk
+              onChunk,
+              maxWords: wordLimit // Pass freemium word limit (500 for users without credits)
             });
             
             // Log diagnostics to console only - output is clean essay text

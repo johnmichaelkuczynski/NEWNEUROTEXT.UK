@@ -90,4 +90,33 @@ export function getMultiplier(provider: string): number {
   return TOKEN_MULTIPLIERS[normalizedProvider] || TOKEN_MULTIPLIERS.openai;
 }
 
+// Check if user has credits without deducting - returns word limit
+// Users with credits: unlimited words, Users without: 500 word limit
+export const FREEMIUM_WORD_LIMIT = 500;
+
+export async function getUserWordLimit(
+  userId: number | undefined,
+  username: string | undefined
+): Promise<{ hasCredits: boolean; wordLimit: number | null }> {
+  // Unlimited users get no word limit
+  if (checkUnlimited(username)) {
+    return { hasCredits: true, wordLimit: null };
+  }
+
+  // Not logged in - hard 500 word limit
+  if (!userId) {
+    return { hasCredits: false, wordLimit: FREEMIUM_WORD_LIMIT };
+  }
+
+  // Check if user has any credits
+  const totalCredits = await storage.getTotalUserCredits(userId);
+  
+  if (totalCredits > 0) {
+    return { hasCredits: true, wordLimit: null };
+  }
+
+  // No credits - 500 word limit
+  return { hasCredits: false, wordLimit: FREEMIUM_WORD_LIMIT };
+}
+
 export { checkUnlimited as hasUnlimitedCredits };

@@ -30,6 +30,7 @@ interface ExpansionRequest {
   constraints?: string[];
   aggressiveness?: "conservative" | "aggressive";
   onChunk?: (chunk: StreamChunk) => void;
+  maxWords?: number | null; // Hard limit for freemium users - stops generation at this limit
 }
 
 export interface StreamChunk {
@@ -833,8 +834,23 @@ Return a comprehensive outline that will ensure argumentative coherence across t
   const sections: string[] = [];
   let previousSections = "";
   let cumulativeWordCount = 0;
+  const maxWords = request.maxWords;
   
   for (let i = 0; i < structure.length; i++) {
+    // FREEMIUM CHECK: Stop generation if we've hit the word limit
+    if (maxWords && cumulativeWordCount >= maxWords) {
+      console.log(`[Universal Expansion] FREEMIUM LIMIT REACHED: ${cumulativeWordCount}/${maxWords} words - stopping generation`);
+      if (onChunk) {
+        onChunk({
+          type: 'complete',
+          message: `Generation stopped at ${cumulativeWordCount} words (freemium limit: ${maxWords})`,
+          wordCount: cumulativeWordCount,
+          totalWordCount: cumulativeWordCount
+        });
+      }
+      break;
+    }
+    
     const section = structure[i];
     console.log(`[Universal Expansion] Generating section ${i + 1}/${structure.length}: ${section.name} (${section.wordCount} words)`);
     
