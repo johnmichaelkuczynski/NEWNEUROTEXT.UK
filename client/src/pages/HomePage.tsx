@@ -3795,26 +3795,7 @@ Generated on: ${new Date().toLocaleString()}`;
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
-      {/* External Knowledge Toggle - KEPT VISIBLE PER USER REQUEST */}
-      <div className="flex justify-end mb-4">
-        <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border-2 border-blue-300 dark:border-blue-700 shadow-md min-w-[320px]">
-          <div className="flex-1">
-            <div className="text-sm font-bold text-blue-900 dark:text-blue-100">
-              USE ZHI DATABASE
-            </div>
-            <div className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
-              AnalyticPhilosophy.net
-            </div>
-          </div>
-          <Switch
-            id="global-external-knowledge"
-            checked={useExternalKnowledge}
-            onCheckedChange={setUseExternalKnowledge}
-            className="data-[state=checked]:bg-blue-600"
-            data-testid="toggle-external-knowledge-global"
-          />
-        </div>
-      </div>
+      {/* External Knowledge Toggle - HIDDEN BY USER REQUEST */}
 
       {/* INTELLIGENCE ANALYSIS TOOL - HIDDEN BY USER REQUEST */}
       <div className="hidden">
@@ -4204,24 +4185,7 @@ Generated on: ${new Date().toLocaleString()}`;
           </DialogHeader>
           
           <div className="space-y-4">
-            {/* External Knowledge Toggle */}
-            <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="flex-1">
-                <Label htmlFor="external-knowledge-main" className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                  USE ZHI DATABASE (AnalyticPhilosophy.net)
-                </Label>
-                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                  When enabled, MAXINTEL fetches research passages and citations from the Zhi knowledge base
-                </p>
-              </div>
-              <Switch
-                id="external-knowledge-main"
-                checked={useExternalKnowledge}
-                onCheckedChange={setUseExternalKnowledge}
-                disabled={isMaximizeIntelligenceLoading}
-                data-testid="toggle-external-knowledge-main"
-              />
-            </div>
+            {/* External Knowledge Toggle - HIDDEN BY USER REQUEST */}
 
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 block">
