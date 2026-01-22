@@ -139,6 +139,77 @@ export function registerPaymentRoutes(app: Express) {
     res.json({ received: true });
   });
 
+  // Verify payment and add credits (fallback for when webhook doesn't work)
+  app.post("/api/payments/verify-session", async (req: Request, res: Response) => {
+    try {
+      if (!isStripeConfigured || !stripe) {
+        return res.status(503).json({ message: "Payment system not configured" });
+      }
+
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { sessionId } = req.body;
+      if (!sessionId) {
+        return res.status(400).json({ message: "Session ID required" });
+      }
+
+      console.log(`[Payment Verify] Checking session: ${sessionId}`);
+
+      // Retrieve the session from Stripe
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      
+      if (session.payment_status !== "paid") {
+        return res.status(400).json({ message: "Payment not completed" });
+      }
+
+      // Check if this session was already processed
+      const existingTransaction = await storage.getCreditTransactionByStripeSession(sessionId);
+      if (existingTransaction && existingTransaction.status === "completed") {
+        console.log(`[Payment Verify] Session ${sessionId} already processed`);
+        return res.json({ success: true, message: "Payment already processed", credits: existingTransaction.credits });
+      }
+
+      // Verify the user matches
+      const userId = parseInt(session.metadata?.userId || "0");
+      if (userId !== req.user.id) {
+        return res.status(403).json({ message: "Session does not belong to this user" });
+      }
+
+      const credits = parseInt(session.metadata?.credits || "1000");
+      
+      // Get or initialize user credits
+      let userCredits = await storage.getUserCredits(userId, "neurotext");
+      if (!userCredits) {
+        userCredits = await storage.initializeUserCredits(userId, "neurotext");
+      }
+
+      // Add credits
+      await storage.updateUserCredits(
+        userId,
+        "neurotext",
+        userCredits.credits + credits
+      );
+
+      // Update transaction status if exists
+      if (existingTransaction) {
+        await storage.updateCreditTransactionStatus(
+          existingTransaction.id,
+          "completed",
+          session.payment_intent as string
+        );
+      }
+
+      console.log(`✅ [Payment Verify] Credits added: ${credits} for user ${userId}`);
+      
+      res.json({ success: true, message: "Credits added successfully", credits });
+    } catch (error: any) {
+      console.error("[Payment Verify] Error:", error);
+      res.status(500).json({ message: "Error verifying payment", error: error.message });
+    }
+  });
+
   // Get user credit balance
   app.get("/api/credits/balance", async (req: Request, res: Response) => {
     try {

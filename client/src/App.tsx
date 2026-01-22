@@ -11,7 +11,9 @@ import JobHistoryPage from "@/pages/JobHistoryPage";
 import NotFound from "@/pages/not-found";
 import { BrainCircuit, Languages, FileEdit, Globe, Bot, Brain, Mail, User, LogOut, Trash2, History, Eye, Loader2, CreditCard } from "lucide-react";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
-import { useState, createContext, useContext } from "react";
+import { useState, createContext, useContext, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { ActiveJobProvider, useActiveJob } from "@/contexts/ActiveJobContext";
 import { JobViewerModal } from "@/components/JobViewerModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -325,6 +327,47 @@ function Navigation() {
 }
 
 function Router({ resetKey }: { resetKey: number }) {
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Handle return from Stripe checkout - verify payment and add credits
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment');
+    const sessionId = params.get('session_id');
+
+    if (paymentStatus === 'success' && sessionId && user) {
+      // Verify the payment and add credits
+      const verifyPayment = async () => {
+        try {
+          const response = await apiRequest("POST", "/api/payments/verify-session", { sessionId });
+          const data = await response.json();
+          
+          if (data.success) {
+            toast({
+              title: "Payment Successful!",
+              description: `${data.credits} credits have been added to your account.`,
+            });
+          }
+        } catch (error: any) {
+          console.error("Payment verification error:", error);
+        }
+        
+        // Clear URL parameters
+        window.history.replaceState({}, document.title, window.location.pathname);
+      };
+
+      verifyPayment();
+    } else if (paymentStatus === 'cancelled') {
+      toast({
+        title: "Payment Cancelled",
+        description: "Your payment was cancelled. No credits were added.",
+        variant: "destructive",
+      });
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [user, toast]);
+
   return (
     <>
       <Navigation />
