@@ -78,13 +78,19 @@ export function registerPaymentRoutes(app: Express) {
 
   // Stripe Webhook Handler
   app.post("/api/payments/webhook", async (req: Request, res: Response) => {
+    console.log(`[Webhook] ========================================`);
+    console.log(`[Webhook] Received webhook request`);
+    
     if (!isStripeConfigured || !stripe) {
+      console.log(`[Webhook] ERROR: Payment system not configured`);
       return res.status(503).send("Payment system not configured");
     }
 
     const sig = req.headers["stripe-signature"];
+    console.log(`[Webhook] Signature present: ${!!sig}`);
     
     if (!sig) {
+      console.log(`[Webhook] ERROR: No signature`);
       return res.status(400).send("No signature");
     }
 
@@ -96,8 +102,11 @@ export function registerPaymentRoutes(app: Express) {
         sig,
         process.env.STRIPE_WEBHOOK_SECRET!
       );
+      console.log(`[Webhook] Event verified successfully`);
+      console.log(`[Webhook] Event type: ${event.type}`);
+      console.log(`[Webhook] Event ID: ${event.id}`);
     } catch (err: any) {
-      console.error("Webhook signature verification failed:", err.message);
+      console.error(`[Webhook] Signature verification FAILED:`, err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
@@ -105,37 +114,63 @@ export function registerPaymentRoutes(app: Express) {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
       
+      console.log(`[Webhook] Processing checkout.session.completed`);
+      console.log(`[Webhook] Session ID: ${session.id}`);
+      console.log(`[Webhook] Payment status: ${session.payment_status}`);
+      console.log(`[Webhook] Metadata:`, JSON.stringify(session.metadata));
+      
       try {
-        const userId = parseInt(session.metadata.userId);
-        const credits = parseInt(session.metadata.credits);
-        const transactionId = parseInt(session.metadata.transactionId);
+        const userId = parseInt(session.metadata?.userId || "0");
+        const credits = parseInt(session.metadata?.credits || "1000");
+        const transactionId = parseInt(session.metadata?.transactionId || "0");
+
+        console.log(`[Webhook] Parsed - userId: ${userId}, credits: ${credits}, transactionId: ${transactionId}`);
+
+        if (!userId) {
+          console.log(`[Webhook] ERROR: No userId in metadata`);
+          return res.json({ received: true, error: "No userId" });
+        }
 
         // Get current credits or initialize for "neurotext" provider (general credits)
         let userCredits = await storage.getUserCredits(userId, "neurotext");
+        console.log(`[Webhook] Current credits:`, userCredits);
+        
         if (!userCredits) {
+          console.log(`[Webhook] Initializing credits for user ${userId}`);
           userCredits = await storage.initializeUserCredits(userId, "neurotext");
+          console.log(`[Webhook] Initialized:`, userCredits);
         }
 
-        // Add 1000 credits
+        const newBalance = userCredits.credits + credits;
+        console.log(`[Webhook] Adding ${credits} credits. Old: ${userCredits.credits}, New: ${newBalance}`);
+
+        // Add credits
         await storage.updateUserCredits(
           userId,
           "neurotext",
-          userCredits.credits + credits
+          newBalance
         );
 
         // Update transaction status
-        await storage.updateCreditTransactionStatus(
-          transactionId,
-          "completed",
-          session.payment_intent as string
-        );
+        if (transactionId) {
+          await storage.updateCreditTransactionStatus(
+            transactionId,
+            "completed",
+            session.payment_intent as string
+          );
+          console.log(`[Webhook] Transaction ${transactionId} marked completed`);
+        }
 
-        console.log(`✅ Credits added: ${credits} NeuroText credits for user ${userId}`);
-      } catch (error) {
-        console.error("Error processing webhook:", error);
+        console.log(`[Webhook] ✅ SUCCESS: ${credits} credits added for user ${userId}`);
+      } catch (error: any) {
+        console.error(`[Webhook] ERROR processing webhook:`, error.message);
+        console.error(`[Webhook] Stack:`, error.stack);
       }
+    } else {
+      console.log(`[Webhook] Ignoring event type: ${event.type}`);
     }
 
+    console.log(`[Webhook] ========================================`);
     res.json({ received: true });
   });
 
