@@ -37,60 +37,63 @@ export function PaywallOverlay({ totalWords, visibleWords, percentageShown }: Pa
   
   const hiddenWords = totalWords - visibleWords;
   
+  const buttonStyle: React.CSSProperties = {
+    backgroundColor: '#000000',
+    color: '#FFFFFF',
+    opacity: 1,
+    fontWeight: 900,
+    fontSize: '18px',
+    padding: '18px 44px',
+    borderRadius: '9999px',
+    border: '4px solid #FFFFFF',
+    cursor: 'pointer',
+    textTransform: 'uppercase',
+    letterSpacing: '1px',
+    display: 'inline-block',
+    textDecoration: 'none',
+    boxShadow: '0 0 0 3px #000000, 0 4px 20px rgba(0,0,0,0.5)',
+    pointerEvents: 'auto',
+    WebkitTextFillColor: '#FFFFFF',
+    filter: 'none',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+  };
+  
   return (
-    <div className="relative mt-4">
-      <style dangerouslySetInnerHTML={{ __html: `
-        .paywall-buy-btn {
-          background: #C41E3A !important;
-          color: #FFFFFF !important;
-          font-weight: 900 !important;
-          font-size: 18px !important;
-          padding: 16px 40px !important;
-          border-radius: 9999px !important;
-          border: none !important;
-          cursor: pointer !important;
-          text-transform: uppercase !important;
-          letter-spacing: 1px !important;
-          display: inline-block !important;
-          text-decoration: none !important;
-          box-shadow: 0 4px 14px rgba(196, 30, 58, 0.4) !important;
-          transition: all 0.2s ease !important;
-        }
-        .paywall-buy-btn:hover {
-          background: #A01830 !important;
-          box-shadow: 0 6px 20px rgba(196, 30, 58, 0.5) !important;
-          transform: translateY(-1px) !important;
-        }
-      `}} />
-      
-      <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-gray-900 via-white/95 dark:via-gray-900/95 to-transparent pointer-events-none" style={{ height: '150px', bottom: 0, top: 'auto' }} />
-      
-      <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-2 border-amber-300 dark:border-amber-700 rounded-lg p-6 text-center shadow-lg">
-        <div className="flex justify-center mb-3">
-          <div className="bg-amber-100 dark:bg-amber-900/50 p-3 rounded-full">
-            <Lock className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+    <div style={{ position: 'relative', marginTop: '16px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      <div style={{
+        background: 'linear-gradient(to bottom, #fffbeb, #fff7ed)',
+        border: '3px solid #fbbf24',
+        borderRadius: '12px',
+        padding: '24px',
+        textAlign: 'center',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+          <div style={{ backgroundColor: '#fef3c7', padding: '12px', borderRadius: '50%' }}>
+            <Lock style={{ width: '32px', height: '32px', color: '#d97706' }} />
           </div>
         </div>
         
-        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">
+        <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1f2937', marginBottom: '8px' }}>
           Content Preview
         </h3>
         
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          You're seeing <span className="font-semibold text-amber-600">{percentageShown}%</span> of this content ({visibleWords.toLocaleString()} of {totalWords.toLocaleString()} words).
+        <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '16px' }}>
+          You're seeing <span style={{ fontWeight: 600, color: '#d97706' }}>{percentageShown}%</span> of this content ({visibleWords.toLocaleString()} of {totalWords.toLocaleString()} words).
           <br />
-          <span className="font-medium">{hiddenWords.toLocaleString()} words</span> are hidden.
+          <span style={{ fontWeight: 500 }}>{hiddenWords.toLocaleString()} words</span> are hidden.
         </p>
         
         <button
+          type="button"
           onClick={handleBuyCredits}
-          className="paywall-buy-btn"
+          style={buttonStyle}
           data-testid="button-buy-credits-paywall"
         >
           BUY CREDITS TO SEE FULL CONTENT
         </button>
         
-        <p className="text-xs text-gray-500 dark:text-gray-500 mt-3">
+        <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px' }}>
           $100 = 1,000 credits. Credits are used based on AI model selected.
         </p>
       </div>
