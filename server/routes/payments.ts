@@ -23,7 +23,9 @@ export function registerPaymentRoutes(app: Express) {
 
       // Get the price ID from environment
       const priceId = process.env.STRIPE_PRICE_ID_100;
-      console.log(`[Stripe Checkout] Using price ID: ${priceId}`);
+      console.log(`[Stripe Checkout] ========================================`);
+      console.log(`[Stripe Checkout] STRIPE_PRICE_ID_100 = "${priceId}"`);
+      console.log(`[Stripe Checkout] ========================================`);
       if (!priceId) {
         return res.status(503).json({ message: "Stripe price not configured" });
       }
