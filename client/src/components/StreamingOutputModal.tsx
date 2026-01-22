@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Copy, Download, X, Loader2, CheckCircle2 } from "lucide-react";
+import { Copy, Download, X, Loader2, CheckCircle2, GripHorizontal, Minimize2, Maximize2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface StreamChunk {
@@ -34,12 +33,51 @@ export function StreamingOutputModal({ isOpen, onClose, onComplete, startNew = f
   const [wordCount, setWordCount] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [position, setPosition] = useState({ x: 100, y: 100 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const wsRef = useRef<WebSocket | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<string>('');
   const hasStartedRef = useRef(false);
   const wordCountRef = useRef(0);
+  const panelRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (panelRef.current) {
+      setIsDragging(true);
+      setDragOffset({
+        x: e.clientX - position.x,
+        y: e.clientY - position.y
+      });
+    }
+  }, [position]);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (isDragging) {
+      setPosition({
+        x: Math.max(0, Math.min(window.innerWidth - 400, e.clientX - dragOffset.x)),
+        y: Math.max(0, Math.min(window.innerHeight - 100, e.clientY - dragOffset.y))
+      });
+    }
+  }, [isDragging, dragOffset]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
@@ -208,73 +246,115 @@ export function StreamingOutputModal({ isOpen, onClose, onComplete, startNew = f
     onClose();
   };
 
+  if (!isOpen) return null;
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-4xl h-[80vh] flex flex-col gap-4">
-        <DialogHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
-          <DialogTitle className="flex items-center gap-2">
-            {isComplete ? (
-              <CheckCircle2 className="w-5 h-5 text-green-500" />
-            ) : (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            )}
-            <span>
-              {isComplete ? 'Generation Complete' : 'Generating Document...'}
-            </span>
-          </DialogTitle>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCopy}
-              disabled={!content}
-              data-testid="button-copy-stream"
-            >
-              {copied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              <span className="ml-1">{copied ? 'Copied' : 'Copy'}</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSave}
-              disabled={!content}
-              data-testid="button-save-stream"
-            >
-              <Download className="w-4 h-4" />
-              <span className="ml-1">Save TXT</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleClose}
-              data-testid="button-close-stream"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
-            <span>{currentSection}</span>
-            <span>
+    <div
+      ref={panelRef}
+      className="fixed z-50 bg-background border rounded-lg shadow-xl flex flex-col"
+      style={{
+        left: position.x,
+        top: position.y,
+        width: isMinimized ? '350px' : '800px',
+        height: isMinimized ? 'auto' : '500px',
+        maxWidth: 'calc(100vw - 40px)',
+        maxHeight: 'calc(100vh - 40px)',
+      }}
+      data-testid="streaming-output-panel"
+    >
+      {/* Draggable header */}
+      <div
+        className="flex items-center justify-between gap-2 p-3 border-b cursor-move select-none bg-muted/50 rounded-t-lg"
+        onMouseDown={handleMouseDown}
+      >
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <GripHorizontal className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+          {isComplete ? (
+            <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+          ) : (
+            <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+          )}
+          <span className="font-medium text-sm truncate">
+            {isComplete ? 'Complete' : 'Generating...'}
+          </span>
+          {!isMinimized && (
+            <span className="text-xs text-muted-foreground">
               {sectionsCompleted}/{totalSections} sections
-              {wordCount > 0 && ` | ${wordCount.toLocaleString()} words`}
             </span>
-          </div>
-          <Progress value={progress} className="h-2" />
+          )}
         </div>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={handleCopy}
+            disabled={!content}
+            data-testid="button-copy-stream"
+          >
+            {copied ? <CheckCircle2 className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={handleSave}
+            disabled={!content}
+            data-testid="button-save-stream"
+          >
+            <Download className="w-3 h-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setIsMinimized(!isMinimized)}
+            data-testid="button-minimize-stream"
+          >
+            {isMinimized ? <Maximize2 className="w-3 h-3" /> : <Minimize2 className="w-3 h-3" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={handleClose}
+            data-testid="button-close-stream"
+          >
+            <X className="w-3 h-3" />
+          </Button>
+        </div>
+      </div>
 
-        <ScrollArea className="flex-1 rounded-md border p-4">
-          <div ref={scrollRef} className="whitespace-pre-wrap font-mono text-sm">
-            {content || (
-              <span className="text-muted-foreground italic">
-                Waiting for content... The document will appear here section by section as it is generated.
+      {!isMinimized && (
+        <>
+          <div className="flex flex-col gap-2 p-3 border-b">
+            <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
+              <span className="truncate">{currentSection}</span>
+              <span className="flex-shrink-0">
+                {wordCount > 0 && `${wordCount.toLocaleString()} words`}
               </span>
-            )}
+            </div>
+            <Progress value={progress} className="h-2" />
           </div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+
+          <ScrollArea className="flex-1 p-4">
+            <div ref={scrollRef} className="whitespace-pre-wrap font-mono text-sm">
+              {content || (
+                <span className="text-muted-foreground italic">
+                  Waiting for content... The document will appear here section by section as it is generated.
+                </span>
+              )}
+            </div>
+          </ScrollArea>
+        </>
+      )}
+
+      {isMinimized && (
+        <div className="p-2 text-xs text-muted-foreground">
+          <Progress value={progress} className="h-1 mb-1" />
+          {wordCount > 0 && `${wordCount.toLocaleString()} words`}
+        </div>
+      )}
+    </div>
   );
 }
