@@ -4,16 +4,21 @@ import { cn } from "@/lib/utils"
 export interface FileInputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
   onFileSelected?: (file: File) => void;
+  onFilesSelected?: (files: File[]) => void;
 }
 
 const FileInput = React.forwardRef<HTMLInputElement, FileInputProps>(
-  ({ className, onFileSelected, onChange, ...props }, ref) => {
+  ({ className, onFileSelected, onFilesSelected, onChange, ...props }, ref) => {
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       if (onChange) onChange(event);
       
       const files = event.target.files;
-      if (files && files.length > 0 && onFileSelected) {
-        onFileSelected(files[0]);
+      if (files && files.length > 0) {
+        if (onFilesSelected) {
+          onFilesSelected(Array.from(files));
+        } else if (onFileSelected) {
+          onFileSelected(files[0]);
+        }
       }
     };
 

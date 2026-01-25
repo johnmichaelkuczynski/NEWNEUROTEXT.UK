@@ -175,6 +175,7 @@ DOES THE AUTHOR USE OTHER AUTHORS TO DEVELOP HIS IDEAS OR TO CLOAK HIS OWN LACK 
   
   // Text Model Validator State
   const [validatorInputText, setValidatorInputText] = useState("");
+  const [uploadedDocuments, setUploadedDocuments] = useState<Array<{id: string; filename: string; content: string; wordCount: number}>>([]);
   const [validatorMode, setValidatorMode] = useState<"reconstruction" | null>(null);
   const [validatorDragOver, setValidatorDragOver] = useState(false);
   const [validatorOutput, setValidatorOutput] = useState<string>("");
@@ -680,6 +681,16 @@ DOES THE AUTHOR USE OTHER AUTHORS TO DEVELOP HIS IDEAS OR TO CLOAK HIS OWN LACK 
     }
   };
 
+  // Combine multiple documents into a single text
+  const combineDocuments = (docs: Array<{id: string; filename: string; content: string; wordCount: number}>) => {
+    if (docs.length === 0) return "";
+    if (docs.length === 1) return docs[0].content;
+    
+    return docs.map((doc, index) => 
+      `=== DOCUMENT ${index + 1}: ${doc.filename} ===\n\n${doc.content}`
+    ).join('\n\n---\n\n');
+  };
+
   // File upload handler for PDF/Word/Doc
   const handleFileUpload = async (file: File, setter: (content: string) => void) => {
     try {
@@ -709,6 +720,76 @@ DOES THE AUTHOR USE OTHER AUTHORS TO DEVELOP HIS IDEAS OR TO CLOAK HIS OWN LACK 
         variant: "destructive",
       });
     }
+  };
+
+  // Multi-file upload handler for main validator input
+  const handleMultipleFileUpload = async (files: File[]) => {
+    try {
+      const newDocs: Array<{id: string; filename: string; content: string; wordCount: number}> = [];
+      
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/extract-text', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to extract text from ${file.name}`);
+        }
+
+        const data = await response.json();
+        const words = data.content.trim().split(/\s+/).filter(Boolean);
+        newDocs.push({
+          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          filename: file.name,
+          content: data.content,
+          wordCount: words.length,
+        });
+      }
+      
+      const allDocs = [...uploadedDocuments, ...newDocs];
+      setUploadedDocuments(allDocs);
+      
+      const combinedContent = combineDocuments(allDocs);
+      setValidatorInputText(combinedContent);
+      
+      toast({
+        title: `${files.length} File${files.length > 1 ? 's' : ''} Uploaded`,
+        description: allDocs.length > 1 
+          ? `${allDocs.length} documents combined (${allDocs.reduce((sum, d) => sum + d.wordCount, 0).toLocaleString()} total words)`
+          : `Successfully loaded ${files[0].name}`,
+      });
+    } catch (error) {
+      console.error('File upload error:', error);
+      toast({
+        title: "Upload Failed", 
+        description: "Could not read one or more files. Please try a different format.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Remove a document from the uploaded list
+  const handleRemoveDocument = (docId: string) => {
+    const newDocs = uploadedDocuments.filter(d => d.id !== docId);
+    setUploadedDocuments(newDocs);
+    
+    if (newDocs.length === 0) {
+      setValidatorInputText("");
+    } else {
+      const combinedContent = combineDocuments(newDocs);
+      setValidatorInputText(combinedContent);
+    }
+    
+    toast({
+      title: "Document Removed",
+      description: newDocs.length > 0 
+        ? `${newDocs.length} document${newDocs.length > 1 ? 's' : ''} remaining`
+        : "All documents cleared",
+    });
   };
 
   // Download text as file
@@ -4448,10 +4529,13 @@ Generated on: ${new Date().toLocaleString()}`;
                   <input
                     type="file"
                     accept=".pdf,.doc,.docx,.txt"
+                    multiple
                     className="hidden"
                     onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleFileUpload(file, setValidatorInputText);
+                      const files = e.target.files;
+                      if (files && files.length > 0) {
+                        handleMultipleFileUpload(Array.from(files));
+                      }
                     }}
                     data-testid="input-validator-upload"
                   />
@@ -4466,7 +4550,7 @@ Generated on: ${new Date().toLocaleString()}`;
                     data-testid="button-validator-upload"
                   >
                     <Upload className="w-4 h-4 mr-2" />
-                    Upload Document
+                    Upload Document{uploadedDocuments.length > 0 ? 's' : ''}
                   </Button>
                 </label>
               </div>
@@ -4496,20 +4580,23 @@ Generated on: ${new Date().toLocaleString()}`;
                 e.preventDefault();
                 e.stopPropagation();
                 setValidatorDragOver(false);
-                const file = e.dataTransfer.files?.[0];
-                if (file && (file.type === 'application/pdf' || 
-                    file.type === 'application/msword' || 
-                    file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-                    file.type === 'text/plain' ||
-                    file.name.endsWith('.txt') ||
-                    file.name.endsWith('.pdf') ||
-                    file.name.endsWith('.doc') ||
-                    file.name.endsWith('.docx'))) {
-                  handleFileUpload(file, setValidatorInputText);
-                } else if (file) {
+                const files = Array.from(e.dataTransfer.files || []);
+                const validFiles = files.filter(file => 
+                  file.type === 'application/pdf' || 
+                  file.type === 'application/msword' || 
+                  file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+                  file.type === 'text/plain' ||
+                  file.name.endsWith('.txt') ||
+                  file.name.endsWith('.pdf') ||
+                  file.name.endsWith('.doc') ||
+                  file.name.endsWith('.docx')
+                );
+                if (validFiles.length > 0) {
+                  handleMultipleFileUpload(validFiles);
+                } else if (files.length > 0) {
                   toast({
                     title: "Unsupported File Type",
-                    description: "Please upload a PDF, Word document (.doc, .docx), or text file (.txt)",
+                    description: "Please upload PDF, Word documents (.doc, .docx), or text files (.txt)",
                     variant: "destructive",
                   });
                 }
@@ -4520,11 +4607,61 @@ Generated on: ${new Date().toLocaleString()}`;
                 <div className="absolute inset-0 bg-emerald-100/80 dark:bg-emerald-900/80 rounded-md flex items-center justify-center z-10 pointer-events-none">
                   <div className="flex flex-col items-center gap-2 text-emerald-700 dark:text-emerald-300">
                     <Upload className="w-10 h-10" />
-                    <span className="font-semibold">Drop document here</span>
-                    <span className="text-sm">PDF, Word, or TXT files</span>
+                    <span className="font-semibold">Drop documents here</span>
+                    <span className="text-sm">Multiple PDF, Word, or TXT files supported</span>
                   </div>
                 </div>
               )}
+              
+              {uploadedDocuments.length > 0 && (
+                <div className="mb-3 p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-sm font-semibold text-green-800 dark:text-green-200 flex items-center gap-1">
+                      <FileText className="w-4 h-4" />
+                      {uploadedDocuments.length} Document{uploadedDocuments.length > 1 ? 's' : ''} Loaded
+                    </h3>
+                    <Badge variant="secondary" className="text-xs">
+                      {uploadedDocuments.reduce((sum, d) => sum + d.wordCount, 0).toLocaleString()} total words
+                    </Badge>
+                  </div>
+                  <div className="space-y-1.5">
+                    {uploadedDocuments.map((doc, index) => (
+                      <div 
+                        key={doc.id} 
+                        className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-md px-3 py-2 border border-green-100 dark:border-green-800"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-800 px-2 py-0.5 rounded">
+                            {index + 1}
+                          </span>
+                          <FileText className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm text-gray-700 dark:text-gray-300 truncate max-w-[200px]" title={doc.filename}>
+                            {doc.filename}
+                          </span>
+                          <Badge variant="outline" className="text-xs">
+                            {doc.wordCount.toLocaleString()} words
+                          </Badge>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveDocument(doc.id)}
+                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                          data-testid={`button-remove-doc-${doc.id}`}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  {uploadedDocuments.length > 1 && (
+                    <p className="text-xs text-green-700 dark:text-green-300 mt-2">
+                      Documents combined. Use instructions like "COMBINE THESE INTO A SINGLE WORK ON [TOPIC]"
+                    </p>
+                  )}
+                </div>
+              )}
+              
               <Textarea
                 value={validatorInputText}
                 onChange={(e) => setValidatorInputText(e.target.value)}
