@@ -176,6 +176,9 @@ DOES THE AUTHOR USE OTHER AUTHORS TO DEVELOP HIS IDEAS OR TO CLOAK HIS OWN LACK 
   // Text Model Validator State
   const [validatorInputText, setValidatorInputText] = useState("");
   const [uploadedDocuments, setUploadedDocuments] = useState<Array<{id: string; filename: string; content: string; wordCount: number}>>([]);
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<Set<string>>(new Set());
+  const [libraryInstructions, setLibraryInstructions] = useState("");
+  const [libraryDragOver, setLibraryDragOver] = useState(false);
   const [validatorMode, setValidatorMode] = useState<"reconstruction" | null>(null);
   const [validatorDragOver, setValidatorDragOver] = useState(false);
   const [validatorOutput, setValidatorOutput] = useState<string>("");
@@ -722,12 +725,34 @@ DOES THE AUTHOR USE OTHER AUTHORS TO DEVELOP HIS IDEAS OR TO CLOAK HIS OWN LACK 
     }
   };
 
-  // Multi-file upload handler for main validator input
+  // Multi-file upload handler for Document Library (up to 5 docs)
   const handleMultipleFileUpload = async (files: File[]) => {
+    const maxDocs = 5;
+    const remainingSlots = maxDocs - uploadedDocuments.length;
+    
+    if (remainingSlots <= 0) {
+      toast({
+        title: "Library Full",
+        description: "Maximum 5 documents allowed. Remove some to add more.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const filesToProcess = files.slice(0, remainingSlots);
+    if (filesToProcess.length < files.length) {
+      toast({
+        title: "Some Files Skipped",
+        description: `Only ${filesToProcess.length} of ${files.length} files added (max 5 total)`,
+        variant: "default",
+      });
+    }
+    
     try {
       const newDocs: Array<{id: string; filename: string; content: string; wordCount: number}> = [];
+      const newIds: string[] = [];
       
-      for (const file of files) {
+      for (const file of filesToProcess) {
         const formData = new FormData();
         formData.append('file', file);
 
@@ -742,8 +767,10 @@ DOES THE AUTHOR USE OTHER AUTHORS TO DEVELOP HIS IDEAS OR TO CLOAK HIS OWN LACK 
 
         const data = await response.json();
         const words = data.content.trim().split(/\s+/).filter(Boolean);
+        const docId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        newIds.push(docId);
         newDocs.push({
-          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: docId,
           filename: file.name,
           content: data.content,
           wordCount: words.length,
@@ -753,14 +780,16 @@ DOES THE AUTHOR USE OTHER AUTHORS TO DEVELOP HIS IDEAS OR TO CLOAK HIS OWN LACK 
       const allDocs = [...uploadedDocuments, ...newDocs];
       setUploadedDocuments(allDocs);
       
-      const combinedContent = combineDocuments(allDocs);
-      setValidatorInputText(combinedContent);
+      // Auto-select newly uploaded documents
+      setSelectedDocumentIds(prev => {
+        const newSet = new Set(prev);
+        newIds.forEach(id => newSet.add(id));
+        return newSet;
+      });
       
       toast({
-        title: `${files.length} File${files.length > 1 ? 's' : ''} Uploaded`,
-        description: allDocs.length > 1 
-          ? `${allDocs.length} documents combined (${allDocs.reduce((sum, d) => sum + d.wordCount, 0).toLocaleString()} total words)`
-          : `Successfully loaded ${files[0].name}`,
+        title: `${filesToProcess.length} Document${filesToProcess.length > 1 ? 's' : ''} Added`,
+        description: `Library now has ${allDocs.length} document${allDocs.length > 1 ? 's' : ''}. Select documents and add instructions.`,
       });
     } catch (error) {
       console.error('File upload error:', error);
@@ -771,24 +800,68 @@ DOES THE AUTHOR USE OTHER AUTHORS TO DEVELOP HIS IDEAS OR TO CLOAK HIS OWN LACK 
       });
     }
   };
+  
+  // Toggle document selection in the library
+  const toggleDocumentSelection = (docId: string) => {
+    setSelectedDocumentIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(docId)) {
+        newSet.delete(docId);
+      } else {
+        newSet.add(docId);
+      }
+      return newSet;
+    });
+  };
+  
+  // Load selected documents into the input area
+  const loadSelectedDocuments = () => {
+    const selectedDocs = uploadedDocuments.filter(d => selectedDocumentIds.has(d.id));
+    if (selectedDocs.length === 0) {
+      toast({
+        title: "No Documents Selected",
+        description: "Please check at least one document to use.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const combinedContent = combineDocuments(selectedDocs);
+    setValidatorInputText(combinedContent);
+    
+    toast({
+      title: "Documents Loaded",
+      description: `${selectedDocs.length} document${selectedDocs.length > 1 ? 's' : ''} loaded into input (${selectedDocs.reduce((s, d) => s + d.wordCount, 0).toLocaleString()} words)`,
+    });
+  };
+  
+  // Clear the document library
+  const clearDocumentLibrary = () => {
+    setUploadedDocuments([]);
+    setSelectedDocumentIds(new Set());
+    toast({
+      title: "Library Cleared",
+      description: "All documents removed from library.",
+    });
+  };
 
-  // Remove a document from the uploaded list
+  // Remove a document from the library
   const handleRemoveDocument = (docId: string) => {
     const newDocs = uploadedDocuments.filter(d => d.id !== docId);
     setUploadedDocuments(newDocs);
     
-    if (newDocs.length === 0) {
-      setValidatorInputText("");
-    } else {
-      const combinedContent = combineDocuments(newDocs);
-      setValidatorInputText(combinedContent);
-    }
+    // Also remove from selection
+    setSelectedDocumentIds(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(docId);
+      return newSet;
+    });
     
     toast({
       title: "Document Removed",
       description: newDocs.length > 0 
-        ? `${newDocs.length} document${newDocs.length > 1 ? 's' : ''} remaining`
-        : "All documents cleared",
+        ? `${newDocs.length} document${newDocs.length > 1 ? 's' : ''} remaining in library`
+        : "Library cleared",
     });
   };
 
@@ -4515,6 +4588,179 @@ Generated on: ${new Date().toLocaleString()}`;
             </p>
           </div>
 
+          {/* Document Library - Multi-Document Upload Section */}
+          <div className="mb-6 bg-blue-50 dark:bg-blue-900/20 p-5 rounded-lg border-2 border-blue-200 dark:border-blue-700">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Document Library
+                <Badge variant="secondary" className="ml-2">{uploadedDocuments.length}/5</Badge>
+              </h3>
+              {uploadedDocuments.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearDocumentLibrary}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  data-testid="button-clear-library"
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Clear All
+                </Button>
+              )}
+            </div>
+            
+            {/* Upload Drop Zone */}
+            <div
+              className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-all ${
+                libraryDragOver 
+                  ? "border-blue-500 bg-blue-100 dark:bg-blue-800/30" 
+                  : "border-blue-300 dark:border-blue-600 hover:border-blue-400"
+              } ${uploadedDocuments.length >= 5 ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (uploadedDocuments.length < 5) setLibraryDragOver(true);
+              }}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                if (uploadedDocuments.length < 5) setLibraryDragOver(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                setLibraryDragOver(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setLibraryDragOver(false);
+                if (uploadedDocuments.length >= 5) return;
+                const files = Array.from(e.dataTransfer.files || []).filter(f => 
+                  f.type === 'application/pdf' || 
+                  f.type === 'application/msword' || 
+                  f.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+                  f.type === 'text/plain' ||
+                  f.name.endsWith('.txt') || f.name.endsWith('.pdf') || f.name.endsWith('.doc') || f.name.endsWith('.docx')
+                );
+                if (files.length > 0) handleMultipleFileUpload(files);
+              }}
+              data-testid="dropzone-library"
+            >
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,.txt"
+                multiple
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                disabled={uploadedDocuments.length >= 5}
+                onChange={(e) => {
+                  const files = e.target.files;
+                  if (files && files.length > 0) handleMultipleFileUpload(Array.from(files));
+                  e.target.value = '';
+                }}
+                data-testid="input-library-upload"
+              />
+              <Upload className="w-8 h-8 mx-auto mb-2 text-blue-500" />
+              <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
+                {uploadedDocuments.length >= 5 
+                  ? "Library full - remove documents to add more" 
+                  : "Drag & drop documents here or click to browse"}
+              </p>
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                PDF, Word (.doc, .docx), TXT - Up to 5 documents
+              </p>
+            </div>
+            
+            {/* Uploaded Documents List with Checkboxes */}
+            {uploadedDocuments.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    Select documents to use:
+                  </span>
+                  <Badge variant="outline" className="text-xs">
+                    {selectedDocumentIds.size} selected ({uploadedDocuments.filter(d => selectedDocumentIds.has(d.id)).reduce((s, d) => s + d.wordCount, 0).toLocaleString()} words)
+                  </Badge>
+                </div>
+                {uploadedDocuments.map((doc, index) => (
+                  <div 
+                    key={doc.id}
+                    className={`flex items-center gap-3 p-3 rounded-md border transition-all cursor-pointer ${
+                      selectedDocumentIds.has(doc.id)
+                        ? "bg-blue-100 dark:bg-blue-800/40 border-blue-400 dark:border-blue-500"
+                        : "bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 hover:border-blue-300"
+                    }`}
+                    onClick={() => toggleDocumentSelection(doc.id)}
+                    data-testid={`doc-item-${doc.id}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedDocumentIds.has(doc.id)}
+                      onChange={() => toggleDocumentSelection(doc.id)}
+                      className="w-4 h-4 accent-blue-600"
+                      onClick={(e) => e.stopPropagation()}
+                      data-testid={`checkbox-doc-${doc.id}`}
+                    />
+                    <span className="text-xs font-bold text-blue-700 dark:text-blue-300 bg-blue-200 dark:bg-blue-700 px-2 py-0.5 rounded">
+                      {index + 1}
+                    </span>
+                    <FileText className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                    <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate" title={doc.filename}>
+                      {doc.filename}
+                    </span>
+                    <Badge variant="outline" className="text-xs flex-shrink-0">
+                      {doc.wordCount.toLocaleString()} words
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveDocument(doc.id);
+                      }}
+                      className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 flex-shrink-0"
+                      data-testid={`button-remove-doc-${doc.id}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                
+                {/* Instructions for selected documents */}
+                {selectedDocumentIds.size > 0 && (
+                  <div className="mt-4 space-y-3">
+                    <label className="block text-sm font-medium text-blue-800 dark:text-blue-200">
+                      Instructions for selected documents:
+                    </label>
+                    <Textarea
+                      value={libraryInstructions}
+                      onChange={(e) => setLibraryInstructions(e.target.value)}
+                      placeholder="e.g., COMBINE THESE INTO A SINGLE COHESIVE WORK ON SYSTEMS SCIENCE&#10;or: EXTRACT THE KEY ARGUMENTS FROM EACH AND SYNTHESIZE&#10;or: COMPARE AND CONTRAST THE MAIN THEMES"
+                      className="min-h-[80px] text-sm"
+                      data-testid="textarea-library-instructions"
+                    />
+                    <Button
+                      onClick={() => {
+                        const selectedDocs = uploadedDocuments.filter(d => selectedDocumentIds.has(d.id));
+                        const combinedContent = combineDocuments(selectedDocs);
+                        setValidatorInputText(combinedContent);
+                        if (libraryInstructions.trim()) {
+                          setValidatorCustomInstructions(libraryInstructions);
+                        }
+                        toast({
+                          title: "Documents Loaded",
+                          description: `${selectedDocs.length} document${selectedDocs.length > 1 ? 's' : ''} loaded. ${libraryInstructions ? 'Instructions applied.' : 'Add instructions below or run operations.'}`,
+                        });
+                      }}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                      data-testid="button-load-selected"
+                    >
+                      <ArrowRight className="w-4 h-4 mr-2" />
+                      Load {selectedDocumentIds.size} Selected Document{selectedDocumentIds.size > 1 ? 's' : ''} into Input
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Input Area with Drag & Drop */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
@@ -4529,13 +4775,10 @@ Generated on: ${new Date().toLocaleString()}`;
                   <input
                     type="file"
                     accept=".pdf,.doc,.docx,.txt"
-                    multiple
                     className="hidden"
                     onChange={(e) => {
-                      const files = e.target.files;
-                      if (files && files.length > 0) {
-                        handleMultipleFileUpload(Array.from(files));
-                      }
+                      const file = e.target.files?.[0];
+                      if (file) handleFileUpload(file, setValidatorInputText);
                     }}
                     data-testid="input-validator-upload"
                   />
@@ -4550,7 +4793,7 @@ Generated on: ${new Date().toLocaleString()}`;
                     data-testid="button-validator-upload"
                   >
                     <Upload className="w-4 h-4 mr-2" />
-                    Upload Document{uploadedDocuments.length > 0 ? 's' : ''}
+                    Upload Document
                   </Button>
                 </label>
               </div>
@@ -4580,23 +4823,20 @@ Generated on: ${new Date().toLocaleString()}`;
                 e.preventDefault();
                 e.stopPropagation();
                 setValidatorDragOver(false);
-                const files = Array.from(e.dataTransfer.files || []);
-                const validFiles = files.filter(file => 
-                  file.type === 'application/pdf' || 
-                  file.type === 'application/msword' || 
-                  file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-                  file.type === 'text/plain' ||
-                  file.name.endsWith('.txt') ||
-                  file.name.endsWith('.pdf') ||
-                  file.name.endsWith('.doc') ||
-                  file.name.endsWith('.docx')
-                );
-                if (validFiles.length > 0) {
-                  handleMultipleFileUpload(validFiles);
-                } else if (files.length > 0) {
+                const file = e.dataTransfer.files?.[0];
+                if (file && (file.type === 'application/pdf' || 
+                    file.type === 'application/msword' || 
+                    file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+                    file.type === 'text/plain' ||
+                    file.name.endsWith('.txt') ||
+                    file.name.endsWith('.pdf') ||
+                    file.name.endsWith('.doc') ||
+                    file.name.endsWith('.docx'))) {
+                  handleFileUpload(file, setValidatorInputText);
+                } else if (file) {
                   toast({
                     title: "Unsupported File Type",
-                    description: "Please upload PDF, Word documents (.doc, .docx), or text files (.txt)",
+                    description: "Please upload a PDF, Word document (.doc, .docx), or text file (.txt)",
                     variant: "destructive",
                   });
                 }
@@ -4607,61 +4847,11 @@ Generated on: ${new Date().toLocaleString()}`;
                 <div className="absolute inset-0 bg-emerald-100/80 dark:bg-emerald-900/80 rounded-md flex items-center justify-center z-10 pointer-events-none">
                   <div className="flex flex-col items-center gap-2 text-emerald-700 dark:text-emerald-300">
                     <Upload className="w-10 h-10" />
-                    <span className="font-semibold">Drop documents here</span>
-                    <span className="text-sm">Multiple PDF, Word, or TXT files supported</span>
+                    <span className="font-semibold">Drop document here</span>
+                    <span className="text-sm">PDF, Word, or TXT file</span>
                   </div>
                 </div>
               )}
-              
-              {uploadedDocuments.length > 0 && (
-                <div className="mb-3 p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-sm font-semibold text-green-800 dark:text-green-200 flex items-center gap-1">
-                      <FileText className="w-4 h-4" />
-                      {uploadedDocuments.length} Document{uploadedDocuments.length > 1 ? 's' : ''} Loaded
-                    </h3>
-                    <Badge variant="secondary" className="text-xs">
-                      {uploadedDocuments.reduce((sum, d) => sum + d.wordCount, 0).toLocaleString()} total words
-                    </Badge>
-                  </div>
-                  <div className="space-y-1.5">
-                    {uploadedDocuments.map((doc, index) => (
-                      <div 
-                        key={doc.id} 
-                        className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-md px-3 py-2 border border-green-100 dark:border-green-800"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-800 px-2 py-0.5 rounded">
-                            {index + 1}
-                          </span>
-                          <FileText className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm text-gray-700 dark:text-gray-300 truncate max-w-[200px]" title={doc.filename}>
-                            {doc.filename}
-                          </span>
-                          <Badge variant="outline" className="text-xs">
-                            {doc.wordCount.toLocaleString()} words
-                          </Badge>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveDocument(doc.id)}
-                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                          data-testid={`button-remove-doc-${doc.id}`}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                  {uploadedDocuments.length > 1 && (
-                    <p className="text-xs text-green-700 dark:text-green-300 mt-2">
-                      Documents combined. Use instructions like "COMBINE THESE INTO A SINGLE WORK ON [TOPIC]"
-                    </p>
-                  )}
-                </div>
-              )}
-              
               <Textarea
                 value={validatorInputText}
                 onChange={(e) => setValidatorInputText(e.target.value)}
