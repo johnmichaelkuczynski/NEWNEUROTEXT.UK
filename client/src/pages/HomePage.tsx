@@ -1270,6 +1270,83 @@ DOES THE AUTHOR USE OTHER AUTHORS TO DEVELOP HIS IDEAS OR TO CLOAK HIS OWN LACK 
     setDocGenOutput("");
   };
 
+  // GLOBAL CLEAR ALL - Clears every input/output box on the page
+  const handleGlobalClearAll = () => {
+    // Documents
+    setDocumentA({ content: "" });
+    setDocumentB({ content: "" });
+    
+    // Analysis results
+    setAnalysisA(null);
+    setAnalysisB(null);
+    setComparison(null);
+    setShowResults(false);
+    
+    // Humanizer boxes
+    setBoxA("");
+    setBoxB("");
+    setBoxC("");
+    setBoxAScore(null);
+    setBoxBScore(null);
+    setBoxCScore(null);
+    setHumanizerCustomInstructions("");
+    
+    // Validator/Reconstruction
+    setValidatorInputText("");
+    setValidatorCustomInstructions("");
+    setValidatorOutput("");
+    setValidatorBatchResults([]);
+    
+    // Objections
+    setObjectionsInputText("");
+    setObjectionsCustomInstructions("");
+    setObjectionsOutput("");
+    
+    // Full Suite
+    setFullSuiteReconstructionOutput("");
+    setFullSuiteObjectionProofOutput("");
+    setFullSuiteAdditionalInfo("");
+    
+    // Coherence
+    setCoherenceInputText("");
+    setCoherenceAnalysis("");
+    setCoherenceRewrite("");
+    setCoherenceChanges("");
+    setCoherenceScore(null);
+    setCoherenceAssessment(null);
+    
+    // Screenplay
+    setScreenplayInputText("");
+    setScreenplayOutput("");
+    setScreenplayCustomInstructions("");
+    setScreenplayWordCount(null);
+    setScreenplayStructure(null);
+    
+    // Outline Generator
+    setOutlinePrompt("");
+    setOutlineInputText("");
+    setOutlineOutput("");
+    
+    // Document Generator
+    setDocGenPrompt("");
+    setDocGenInputText("");
+    setDocGenOutput("");
+    
+    // Document Library
+    setUploadedDocuments([]);
+    setLibraryInstructions("");
+    setSelectedDocumentIds(new Set());
+    
+    // Rewrite results
+    setRewriteResult("");
+    setCustomInstructions("");
+    
+    toast({
+      title: "All Cleared",
+      description: "All input and output fields have been reset.",
+    });
+  };
+
   // File upload handler for generators
   const handleGeneratorFileUpload = async (file: File, setter: (text: string) => void) => {
     const reader = new FileReader();
@@ -9561,6 +9638,16 @@ Generated on: ${new Date().toLocaleString()}`;
           </div>
         </div>
       )}
+      
+      {/* Global Clear All - Floating Button */}
+      <button
+        onClick={handleGlobalClearAll}
+        className="fixed right-4 bottom-4 z-50 p-2 rounded-full bg-background/80 backdrop-blur-sm border border-border/50 shadow-sm hover-elevate opacity-40 hover:opacity-100 transition-opacity"
+        title="Clear All Fields"
+        data-testid="button-global-clear"
+      >
+        <Trash2 className="w-4 h-4 text-muted-foreground" />
+      </button>
     </div>
   );
 };
