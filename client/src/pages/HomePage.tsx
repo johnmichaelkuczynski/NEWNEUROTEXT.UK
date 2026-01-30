@@ -1072,7 +1072,10 @@ DOES THE AUTHOR USE OTHER AUTHORS TO DEVELOP HIS IDEAS OR TO CLOAK HIS OWN LACK 
 
   // Screenplay Generator Handler
   const handleGenerateScreenplay = async () => {
+    console.log("[Screenplay] Button clicked, input length:", screenplayInputText.length);
+    
     if (!screenplayInputText.trim()) {
+      console.log("[Screenplay] No input text - showing error toast");
       toast({
         title: "Error",
         description: "Please provide source material for the screenplay",
@@ -1080,6 +1083,8 @@ DOES THE AUTHOR USE OTHER AUTHORS TO DEVELOP HIS IDEAS OR TO CLOAK HIS OWN LACK 
       });
       return;
     }
+    
+    console.log("[Screenplay] Starting generation with", screenplayInputText.trim().split(/\s+/).length, "words");
     
     setScreenplayLoading(true);
     setScreenplayOutput("");
@@ -1125,7 +1130,8 @@ DOES THE AUTHOR USE OTHER AUTHORS TO DEVELOP HIS IDEAS OR TO CLOAK HIS OWN LACK 
         throw new Error(data.message || 'Screenplay generation failed');
       }
     } catch (error: any) {
-      console.error("Screenplay generation error:", error);
+      console.error("[Screenplay] Generation error:", error);
+      console.error("[Screenplay] Error details:", error.message, error.stack);
       toast({
         title: "Error",
         description: error.message || "Failed to generate screenplay",
