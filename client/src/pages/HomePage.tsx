@@ -1123,9 +1123,16 @@ DOES THE AUTHOR USE OTHER AUTHORS TO DEVELOP HIS IDEAS OR TO CLOAK HIS OWN LACK 
         setScreenplayStructure(data.structure);
         setScreenplayProcessingTime(data.processingTimeMs);
         toast({
-          title: "Screenplay Generated",
-          description: `Complete screenplay with ${data.wordCount.toLocaleString()} words`
+          title: "Screenplay Generated!",
+          description: `Complete screenplay with ${data.wordCount.toLocaleString()} words - scroll down to see it`
         });
+        // Auto-scroll to the output
+        setTimeout(() => {
+          const outputEl = document.querySelector('[data-testid="textarea-screenplay-output"]');
+          if (outputEl) {
+            outputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
       } else {
         throw new Error(data.message || 'Screenplay generation failed');
       }
