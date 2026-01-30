@@ -1092,6 +1092,10 @@ DOES THE AUTHOR USE OTHER AUTHORS TO DEVELOP HIS IDEAS OR TO CLOAK HIS OWN LACK 
     setScreenplayStructure(null);
     setScreenplayProcessingTime(null);
     
+    // Open streaming modal to show progress
+    setStreamingStartNew(true);
+    setStreamingModalOpen(true);
+    
     try {
       let targetWords = 20000;
       if (screenplayTargetWords && screenplayTargetWords.trim()) {

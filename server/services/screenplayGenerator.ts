@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { broadcastGenerationChunk } from './ccStreamingService';
 
 const anthropic = new Anthropic();
 
@@ -229,9 +230,23 @@ export async function generateScreenplay(
   console.log(`[Screenplay] Starting generation - Target: ${effectiveTargetWords} words`);
   console.log(`[Screenplay] Source material: ${countWords(sourceText)} words`);
   
+  // Broadcast: Starting
+  broadcastGenerationChunk({
+    type: 'progress',
+    stage: 'Screenplay: Extracting outline...',
+    progress: 5
+  });
+  
   // Step 1: Extract global outline
   const outline = await extractScreenplayOutline(sourceText, effectiveTargetWords, customInstructions);
   console.log(`[Screenplay] Outline extracted - Genre: ${outline.genre}, Protagonist: ${outline.protagonistName}`);
+  
+  // Broadcast: Outline complete
+  broadcastGenerationChunk({
+    type: 'outline',
+    stage: `Outline: ${outline.genre} - ${outline.protagonistName}`,
+    totalChunks: Math.ceil(effectiveTargetWords / WORDS_PER_CHUNK)
+  });
   
   // Step 2: Calculate chunk distribution
   const totalChunks = Math.ceil(effectiveTargetWords / WORDS_PER_CHUNK);
@@ -258,7 +273,20 @@ export async function generateScreenplay(
     chunkOutputs.push(chunkOutput);
     fullScreenplay += (fullScreenplay ? '\n\n' : '') + chunkOutput;
     
-    console.log(`[Screenplay] Chunk ${i + 1} complete - ${countWords(chunkOutput)} words`);
+    const chunkWordCount = countWords(chunkOutput);
+    const runningTotal = countWords(fullScreenplay);
+    console.log(`[Screenplay] Chunk ${i + 1} complete - ${chunkWordCount} words`);
+    
+    // Broadcast: Chunk complete
+    broadcastGenerationChunk({
+      type: 'section_complete',
+      sectionTitle: `Screenplay Chunk ${i + 1}/${totalChunks}`,
+      chunkText: chunkOutput,
+      sectionIndex: i,
+      totalChunks: totalChunks,
+      progress: Math.round(((i + 1) / totalChunks) * 100),
+      wordCount: runningTotal
+    });
   }
   
   // Step 4: Calculate structure breakdown
@@ -275,6 +303,15 @@ export async function generateScreenplay(
   const processingTimeMs = Date.now() - startTime;
   
   console.log(`[Screenplay] Generation complete - ${totalWords} words in ${Math.round(processingTimeMs / 1000)}s`);
+  
+  // Broadcast: Complete
+  broadcastGenerationChunk({
+    type: 'complete',
+    stage: 'Screenplay Complete',
+    progress: 100,
+    wordCount: totalWords,
+    totalWordCount: totalWords
+  });
   
   return {
     screenplay: fullScreenplay,
