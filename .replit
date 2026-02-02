@@ -45,4 +45,3 @@ expertMode = true
 [userenv]
 
 [userenv.shared]
-VITE_STRIPE_PUBLISHABLE_KEY = "pk_live_51RjrEVRu18Yf1TJEqAR2rHC9WNkL41HLps3fJnVitAddvz2f7Q2qa1DlXGRn1R04TyB5nrWpIYtfn5GplzyTcFWr00pdPV86Uv"

@@ -6,11 +6,18 @@ export function registerPaymentRoutes(app: Express) {
   // Create Stripe Checkout Session for $100 NeuroText Credits package
   app.post("/api/payments/checkout", async (req: Request, res: Response) => {
     try {
+      console.log(`[Stripe Checkout] Request received`);
+      console.log(`[Stripe Checkout] isAuthenticated: ${req.isAuthenticated()}`);
+      console.log(`[Stripe Checkout] session: ${JSON.stringify(req.session?.passport || 'no passport')}`);
+      console.log(`[Stripe Checkout] user: ${req.user ? JSON.stringify({ id: (req.user as any).id, username: (req.user as any).username }) : 'null'}`);
+      
       if (!isStripeConfigured || !stripe) {
+        console.log(`[Stripe Checkout] ERROR: Stripe not configured`);
         return res.status(503).json({ message: "Payment system not configured" });
       }
 
       if (!req.isAuthenticated() || !req.user) {
+        console.log(`[Stripe Checkout] ERROR: Not authenticated`);
         return res.status(401).json({ message: "Authentication required" });
       }
 
