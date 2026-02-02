@@ -81,10 +81,8 @@ export async function safeDbUpdateRequired<T>(
 }
 
 export async function testDbConnection(): Promise<boolean> {
-  console.log('[DB] Testing database connection...');
   try {
-    const result = await db.execute('SELECT 1 as test');
-    console.log('[DB] Connection test SUCCESS');
+    await db.execute('SELECT 1');
     return true;
   } catch (error: any) {
     console.error('[DB] Connection test FAILED:', error.message);
